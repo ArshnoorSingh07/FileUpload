@@ -35,7 +35,10 @@ function isFileTypeSupported(type,supportedTypes){
 }
 
 async function uploadFileToCloudinary(file,folder){
-    const options = folder;
+    const options = {
+        folder: folder
+    };
+    console.log("Temp File: ",file.tempFilePath);
     return await cloudinary.uploader.upload(file.tempFilePath, options);
 }
 
@@ -44,8 +47,8 @@ exports.imageUpload = async(req,res)=>{
     try{
 
         // data fetch
-        const {names,tags,email} = req.body;
-        console.log(names,tags,email);
+        const {name,tags,email} = req.body;
+        console.log(name,tags,email);
 
         const file = req.files.imageFile;
         console.log(file);
@@ -53,6 +56,8 @@ exports.imageUpload = async(req,res)=>{
         // Validation
         const supportedTypes = ['jpg','jpeg','png'];
         const fileType = file.name.split('.')[1].toLowerCase();
+
+        console.log("FileType:",fileType);
 
         if(!isFileTypeSupported(fileType,supportedTypes)){
             return res.status(400).json({
@@ -62,24 +67,30 @@ exports.imageUpload = async(req,res)=>{
         }
 
         // If file format is supported
+        console.log("Uploading to FileUploadApp");
         const response = await uploadFileToCloudinary(file,"FileUploadApp");
 
         console.log(response);
 
         // Save entry in db
-        // const fileData = await File.create({
-        //     name,
-        //     tags,
-        //     email,
-        //     imageUrl
-        // })
+        const fileData = await File.create({
+            name,
+            tags,
+            email,
+            image:response.secure_url,
+        })
 
         res.json({
             success:true,
+            imageUrl:response.secure_url,
             message:"Image Successfully uploaded",
         })
 
     } catch(err){
-        console.log(err);
+        console.error(err);
+        res.status(400).json({
+            success:false,
+            message:"Something Went Wrong",
+        })
     }
 }
